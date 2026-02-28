@@ -1,0 +1,8 @@
+{
+  "dev": {
+    "run": "cargo run"
+  },
+  "database": "basic-kt",
+  "module-path": "./spacetimedb",
+  "server": "maincloud"
+}

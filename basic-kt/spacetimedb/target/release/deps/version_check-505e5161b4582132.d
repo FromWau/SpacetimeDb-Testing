@@ -1,0 +1,10 @@
+/home/fromml/Projects/SpacetimeDb-Testing/basic-kt/spacetimedb/target/release/deps/version_check-505e5161b4582132.d: /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/lib.rs /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/version.rs /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/channel.rs /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/date.rs
+
+/home/fromml/Projects/SpacetimeDb-Testing/basic-kt/spacetimedb/target/release/deps/libversion_check-505e5161b4582132.rlib: /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/lib.rs /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/version.rs /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/channel.rs /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/date.rs
+
+/home/fromml/Projects/SpacetimeDb-Testing/basic-kt/spacetimedb/target/release/deps/libversion_check-505e5161b4582132.rmeta: /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/lib.rs /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/version.rs /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/channel.rs /home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/date.rs
+
+/home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/lib.rs:
+/home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/version.rs:
+/home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/channel.rs:
+/home/fromml/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/date.rs:

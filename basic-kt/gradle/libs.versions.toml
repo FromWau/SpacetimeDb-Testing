@@ -3,7 +3,7 @@ agp = "9.0.0"
 android-compileSdk = "36"
 android-minSdk = "24"
 android-targetSdk = "36"
-kotlin = "2.3.0"
+kotlin = "2.3.10"
 kotlinx-coroutines = "1.10.2"
 
 [libraries]

@@ -1,11 +1,9 @@
 import com.clockworklabs.spacetimedb_kotlin_sdk.shared_client.DbConnection
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import module_bindings.db
 import module_bindings.reducers
 import module_bindings.withModuleBindings
-import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.seconds
 
 fun main(): Unit = runBlocking {
@@ -46,5 +44,4 @@ fun main(): Unit = runBlocking {
     delay(1.seconds)
 
     conn.disconnect()
-    delay(0.5.seconds) // let onDisconnect callbacks fire
-    exitProcess(0)
+}

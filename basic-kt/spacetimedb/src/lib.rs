@@ -5,6 +5,28 @@ pub struct Person {
     name: String,
 }
 
+#[spacetimedb::table(accessor = player, public)]
+pub struct Player {
+    #[primary_key]
+    #[auto_inc]
+    id: u64,
+    name: String,
+    health: Option<i32>,
+    #[index(btree)]
+    score: i64,
+}
+
+#[spacetimedb::table(accessor = item, public)]
+pub struct Item {
+    #[primary_key]
+    #[auto_inc]
+    id: u64,
+    #[index(btree)]
+    owner_id: u64,
+    name: String,
+    rarity: u8,
+}
+
 #[spacetimedb::reducer(init)]
 pub fn init(_ctx: &ReducerContext) {
     // Called when the module is initially published

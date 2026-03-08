@@ -27,6 +27,27 @@ Compose Desktop GUI version of the chat client — same server module as chat-kt
 - **Client:** Compose Desktop with Material3 dark theme, message list with timestamps, online/offline user sidebar, `/name <name>` support
 - **Features:** auto-scrolling chat, per-client token persistence, two run configs (Client 1 / Client 2) for multi-client testing
 
+### chat-all
+
+Comprehensive SDK integration test — extends chat-compose to exercise all Kotlin SDK features.
+
+- **Server module:** `User`, `Message` (with auto-inc id + primary key), `Note` (with auto-inc id, owner, content, tag) tables; `set_name`, `send_message`, `delete_message`, `add_note`, `delete_note` reducers
+- **Client:** Compose Desktop with all chat-compose features plus test commands
+- **Commands:** `/name`, `/del <id>`, `/note <tag> <text>`, `/delnote <id>`, `/unsub`, `/resub`, `/query <sql>`
+- **SDK features tested:**
+  - Table callbacks: `onInsert`, `onUpdate`, `onDelete`
+  - Filtered subscriptions (`SELECT * FROM note`)
+  - Multiple concurrent subscriptions
+  - Subscription `onError` callback
+  - `unsubscribeThen` with completion callback
+  - Re-subscribe after unsubscribe
+  - `SubscriptionHandle` state tracking
+  - `oneOffQuery` (ad-hoc SQL)
+  - Reducer callbacks with `Status.Failed` / `Status.Committed`
+  - `ConnectionId` from reducer context
+  - Token persistence and identity reuse
+  - Disconnect/reconnect detection
+
 ## Prerequisites
 
 - Local SpacetimeDB repo at `~/Projects/SpacetimeDB/` with CLI and SDK built
@@ -49,7 +70,7 @@ cd <project> && spacetime publish --server local
 ./gradlew run --console=plain --no-configuration-cache --args="--client 1"
 ./gradlew run --console=plain --no-configuration-cache --args="--client 2"
 
-# For chat-compose with multiple clients:
+# For chat-compose / chat-all with multiple clients:
 ./gradlew run -PclientId=1 --no-configuration-cache
 ./gradlew run -PclientId=2 --no-configuration-cache
 ```

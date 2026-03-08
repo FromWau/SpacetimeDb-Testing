@@ -1,4 +1,4 @@
-use spacetimedb::{Identity, ReducerContext, Table, Timestamp};
+use spacetimedb::{Identity, ReducerContext, ScheduleAt, Table, Timestamp};
 
 #[spacetimedb::table(accessor = user, public)]
 pub struct User {
@@ -27,6 +27,18 @@ pub struct Note {
     owner: Identity,
     content: String,
     tag: String,
+}
+
+/// Scheduled table — tests ScheduleAt and TimeDuration types.
+/// When a row's scheduled_at time arrives, the server calls send_reminder.
+#[spacetimedb::table(accessor = reminder, public, scheduled(send_reminder))]
+pub struct Reminder {
+    #[primary_key]
+    #[auto_inc]
+    scheduled_id: u64,
+    scheduled_at: ScheduleAt,
+    text: String,
+    owner: Identity,
 }
 
 fn validate_name(name: String) -> Result<String, String> {
@@ -112,6 +124,68 @@ pub fn delete_note(ctx: &ReducerContext, note_id: u64) -> Result<(), String> {
     } else {
         Err("Note not found".to_string())
     }
+}
+
+/// Schedule a one-shot reminder that fires after delay_ms milliseconds.
+#[spacetimedb::reducer]
+pub fn schedule_reminder(ctx: &ReducerContext, text: String, delay_ms: u64) -> Result<(), String> {
+    if text.is_empty() {
+        return Err("Reminder text must not be empty".to_string());
+    }
+    let at = ctx.timestamp + std::time::Duration::from_millis(delay_ms);
+    ctx.db.reminder().insert(Reminder {
+        scheduled_id: 0,
+        scheduled_at: ScheduleAt::Time(at),
+        text: text.clone(),
+        owner: ctx.sender(),
+    });
+    log::info!("User {} scheduled reminder in {delay_ms}ms: {text}", ctx.sender());
+    Ok(())
+}
+
+/// Schedule a repeating reminder that fires every interval_ms milliseconds.
+#[spacetimedb::reducer]
+pub fn schedule_reminder_repeat(ctx: &ReducerContext, text: String, interval_ms: u64) -> Result<(), String> {
+    if text.is_empty() {
+        return Err("Reminder text must not be empty".to_string());
+    }
+    let interval = std::time::Duration::from_millis(interval_ms);
+    ctx.db.reminder().insert(Reminder {
+        scheduled_id: 0,
+        scheduled_at: interval.into(),
+        text: text.clone(),
+        owner: ctx.sender(),
+    });
+    log::info!("User {} scheduled repeating reminder every {interval_ms}ms: {text}", ctx.sender());
+    Ok(())
+}
+
+/// Cancel a scheduled reminder by id.
+#[spacetimedb::reducer]
+pub fn cancel_reminder(ctx: &ReducerContext, reminder_id: u64) -> Result<(), String> {
+    if let Some(reminder) = ctx.db.reminder().scheduled_id().find(reminder_id) {
+        if reminder.owner != ctx.sender() {
+            return Err("Cannot cancel another user's reminder".to_string());
+        }
+        ctx.db.reminder().scheduled_id().delete(reminder_id);
+        log::info!("User {} cancelled reminder {reminder_id}", ctx.sender());
+        Ok(())
+    } else {
+        Err("Reminder not found".to_string())
+    }
+}
+
+/// Called by the scheduler when a reminder fires.
+#[spacetimedb::reducer]
+pub fn send_reminder(ctx: &ReducerContext, reminder: Reminder) {
+    log::info!("Reminder fired for {}: {}", reminder.owner, reminder.text);
+    // Insert a system message so the client sees it
+    ctx.db.message().insert(Message {
+        id: 0,
+        sender: reminder.owner,
+        text: format!("[REMINDER] {}", reminder.text),
+        sent: ctx.timestamp,
+    });
 }
 
 #[spacetimedb::reducer(init)]

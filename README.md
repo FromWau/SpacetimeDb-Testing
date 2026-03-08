@@ -31,9 +31,20 @@ Compose Desktop GUI version of the chat client — same server module as chat-kt
 
 Comprehensive SDK integration test — extends chat-compose to exercise all Kotlin SDK features.
 
-- **Server module:** `User`, `Message` (with auto-inc id + primary key), `Note` (with auto-inc id, owner, content, tag) tables; `set_name`, `send_message`, `delete_message`, `add_note`, `delete_note` reducers
+- **Server module:** `User`, `Message`, `Note`, `Reminder` (scheduled) tables; `set_name`, `send_message`, `delete_message`, `add_note`, `delete_note`, `schedule_reminder`, `schedule_reminder_repeat`, `cancel_reminder`, `send_reminder` reducers
 - **Client:** Compose Desktop with all chat-compose features plus test commands
-- **Commands:** `/name`, `/del <id>`, `/note <tag> <text>`, `/delnote <id>`, `/unsub`, `/resub`, `/query <sql>`
+- **Commands:**
+  - `/name <n>` — set display name (tests reducer error on empty)
+  - `/del <id>` — delete a message (tests `onDelete`)
+  - `/note <tag> <text>` — add a note
+  - `/delnote <id>` — delete a note
+  - `/unsub` — unsubscribe from notes
+  - `/resub` — re-subscribe to notes
+  - `/query <sql>` — one-off query (callback variant)
+  - `/squery <sql>` — one-off query (suspend variant)
+  - `/remind <ms> <text>` — one-shot reminder (`ScheduleAt::Time`)
+  - `/remind-repeat <ms> <text>` — repeating reminder (`ScheduleAt::Interval`)
+  - `/remind-cancel <id>` — cancel a reminder
 - **SDK features tested:**
   - Table callbacks: `onInsert`, `onUpdate`, `onDelete`
   - Filtered subscriptions (`SELECT * FROM note`)
@@ -42,9 +53,11 @@ Comprehensive SDK integration test — extends chat-compose to exercise all Kotl
   - `unsubscribeThen` with completion callback
   - Re-subscribe after unsubscribe
   - `SubscriptionHandle` state tracking
-  - `oneOffQuery` (ad-hoc SQL)
+  - `oneOffQuery` — callback and suspend variants
   - Reducer callbacks with `Status.Failed` / `Status.Committed`
   - `ConnectionId` from reducer context
+  - `ScheduleAt` / `TimeDuration` types (scheduled reducers)
+  - `withCompression(GZIP)` / `withLightMode` builder options
   - Token persistence and identity reuse
   - Disconnect/reconnect detection
 

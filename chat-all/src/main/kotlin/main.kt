@@ -11,13 +11,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import com.clockworklabs.spacetimedb_kotlin_sdk.shared_client.CompressionMode
 import com.clockworklabs.spacetimedb_kotlin_sdk.shared_client.DbConnection
 import com.clockworklabs.spacetimedb_kotlin_sdk.shared_client.EventContext
 import com.clockworklabs.spacetimedb_kotlin_sdk.shared_client.Status
 import com.clockworklabs.spacetimedb_kotlin_sdk.shared_client.SubscriptionHandle
 import com.clockworklabs.spacetimedb_kotlin_sdk.shared_client.type.Identity
 import com.clockworklabs.spacetimedb_kotlin_sdk.shared_client.type.Timestamp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
 import module_bindings.*
 import java.nio.file.Path
 import java.time.LocalDate
@@ -107,6 +110,7 @@ fun ChatApp() {
     val offlineUsers = remember { mutableStateListOf<User>() }
     val notes = remember { mutableStateListOf<Note>() }
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     // Track subscription handles for unsubscribe testing
     var mainSubHandle by remember { mutableStateOf<SubscriptionHandle?>(null) }
@@ -135,10 +139,14 @@ fun ChatApp() {
             .withDatabaseName(DB_NAME)
             .withToken(loadToken())
             .withModuleBindings()
+            // --- Builder options under test ---
+            .withCompression(CompressionMode.GZIP)
+            .withLightMode(false)
             .onConnect { c, identity, token ->
                 localIdentity = identity
                 saveToken(token)
                 log("Identity: ${identity.toHexString().take(16)}...")
+                log("Compression: GZIP, LightMode: false")
 
                 // --- Table callbacks ---
 
@@ -191,6 +199,18 @@ fun ChatApp() {
                     log("Note #${note.id} deleted")
                 }
 
+                // onInsert (Reminder) — tests ScheduleAt type in generated bindings
+                c.db.reminder.onInsert { ctx, reminder ->
+                    if (ctx is EventContext.SubscribeApplied) return@onInsert
+                    log("Reminder scheduled: \"${reminder.text}\" (id=${reminder.scheduledId})")
+                }
+
+                // onDelete (Reminder) — fires when the scheduled reducer completes
+                c.db.reminder.onDelete { ctx, reminder ->
+                    if (ctx is EventContext.SubscribeApplied) return@onDelete
+                    log("Reminder consumed: \"${reminder.text}\" (id=${reminder.scheduledId})")
+                }
+
                 // --- Reducer callbacks ---
 
                 c.reducers.onSetName { ctx, name ->
@@ -227,9 +247,39 @@ fun ChatApp() {
                     }
                 }
 
+                c.reducers.onScheduleReminder { ctx, text, delayMs ->
+                    if (ctx.callerIdentity == localIdentity) {
+                        if (ctx.status is Status.Committed) {
+                            log("Reminder scheduled in ${delayMs}ms: \"$text\"")
+                        } else if (ctx.status is Status.Failed) {
+                            log("Failed to schedule reminder: ${(ctx.status as Status.Failed).message}")
+                        }
+                    }
+                }
+
+                c.reducers.onCancelReminder { ctx, reminderId ->
+                    if (ctx.callerIdentity == localIdentity) {
+                        if (ctx.status is Status.Committed) {
+                            log("Reminder #$reminderId cancelled")
+                        } else if (ctx.status is Status.Failed) {
+                            log("Failed to cancel reminder #$reminderId: ${(ctx.status as Status.Failed).message}")
+                        }
+                    }
+                }
+
+                c.reducers.onScheduleReminderRepeat { ctx, text, intervalMs ->
+                    if (ctx.callerIdentity == localIdentity) {
+                        if (ctx.status is Status.Committed) {
+                            log("Repeating reminder every ${intervalMs}ms: \"$text\"")
+                        } else if (ctx.status is Status.Failed) {
+                            log("Failed to schedule repeating reminder: ${(ctx.status as Status.Failed).message}")
+                        }
+                    }
+                }
+
                 // --- Subscriptions ---
 
-                // Main subscription: user + message tables (subscribeToAllTables alternative via explicit queries)
+                // Main subscription: user + message + reminder tables
                 mainSubHandle = c.subscriptionBuilder()
                     .onApplied { ctx ->
                         connected = true
@@ -247,6 +297,7 @@ fun ChatApp() {
                     .subscribe(listOf(
                         "SELECT * FROM user",
                         "SELECT * FROM message",
+                        "SELECT * FROM reminder",
                     ))
 
                 // Filtered subscription: only notes (tests filtered subscribe + separate handle)
@@ -339,7 +390,7 @@ fun ChatApp() {
 
                     // Command help
                     Text(
-                        "/name <n> | /del <id> | /note <tag> <text> | /delnote <id> | /unsub | /resub | /query <sql>",
+                        "/name | /del | /note | /delnote | /unsub | /resub | /query | /squery | /remind | /remind-repeat | /remind-cancel",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -425,6 +476,54 @@ fun ChatApp() {
                                             }
                                         }
                                         log("Executing: $sql")
+                                    }
+                                }
+                                "/squery" -> {
+                                    // Suspend variant of oneOffQuery
+                                    val sql = arg.trim()
+                                    if (sql.isEmpty()) {
+                                        log("Usage: /squery <sql>")
+                                    } else {
+                                        log("Executing (suspend): $sql")
+                                        scope.launch(Dispatchers.Default) {
+                                            val result = c.oneOffQuery(sql)
+                                            when (val r = result.result) {
+                                                is com.clockworklabs.spacetimedb_kotlin_sdk.shared_client.protocol.QueryResult.Ok ->
+                                                    log("SuspendQuery OK: ${r.rows.tables.size} table(s)")
+                                                is com.clockworklabs.spacetimedb_kotlin_sdk.shared_client.protocol.QueryResult.Err ->
+                                                    log("SuspendQuery error: ${r.error}")
+                                            }
+                                        }
+                                    }
+                                }
+                                "/remind" -> {
+                                    // /remind <delay_ms> <text>
+                                    val remindParts = arg.trim().split(" ", limit = 2)
+                                    val delayMs = remindParts.getOrNull(0)?.toULongOrNull()
+                                    val remindText = remindParts.getOrNull(1)
+                                    if (delayMs != null && remindText != null) {
+                                        c.reducers.scheduleReminder(remindText, delayMs)
+                                    } else {
+                                        log("Usage: /remind <delay_ms> <text>")
+                                    }
+                                }
+                                "/remind-cancel" -> {
+                                    val id = arg.trim().toULongOrNull()
+                                    if (id != null) {
+                                        c.reducers.cancelReminder(id)
+                                    } else {
+                                        log("Usage: /remind-cancel <reminder_id>")
+                                    }
+                                }
+                                "/remind-repeat" -> {
+                                    // /remind-repeat <interval_ms> <text>
+                                    val remindParts = arg.trim().split(" ", limit = 2)
+                                    val intervalMs = remindParts.getOrNull(0)?.toULongOrNull()
+                                    val remindText = remindParts.getOrNull(1)
+                                    if (intervalMs != null && remindText != null) {
+                                        c.reducers.scheduleReminderRepeat(remindText, intervalMs)
+                                    } else {
+                                        log("Usage: /remind-repeat <interval_ms> <text>")
                                     }
                                 }
                                 else -> {

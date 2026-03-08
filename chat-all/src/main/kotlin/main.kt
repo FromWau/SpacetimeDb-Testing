@@ -142,6 +142,7 @@ fun ChatApp() {
             // --- Builder options under test ---
             .withCompression(CompressionMode.GZIP)
             .withLightMode(false)
+            .withConfirmedReads(true)
             .onConnect { c, identity, token ->
                 localIdentity = identity
                 saveToken(token)
@@ -390,7 +391,7 @@ fun ChatApp() {
 
                     // Command help
                     Text(
-                        "/name | /del | /note | /delnote | /unsub | /resub | /query | /squery | /remind | /remind-repeat | /remind-cancel",
+                        "/name | /del | /note | /delnote | /unsub | /resub | /query | /squery | /remind | /remind-repeat | /remind-cancel | /test-rmcb",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -525,6 +526,28 @@ fun ChatApp() {
                                     } else {
                                         log("Usage: /remind-repeat <interval_ms> <text>")
                                     }
+                                }
+                                "/test-rmcb" -> {
+                                    // Test removeOnConnect / removeOnDisconnect / removeOnConnectError
+                                    val testCb: (DbConnection, Throwable?) -> Unit = { _, _ -> log("TEST: onDisconnect fired") }
+                                    c.onDisconnect(testCb)
+                                    log("Added test onDisconnect callback")
+                                    c.removeOnDisconnect(testCb)
+                                    log("Removed test onDisconnect callback")
+
+                                    val testConnCb: (DbConnection, Identity, String) -> Unit = { _, _, _ -> log("TEST: onConnect fired") }
+                                    c.onConnect(testConnCb)
+                                    log("Added test onConnect callback")
+                                    c.removeOnConnect(testConnCb)
+                                    log("Removed test onConnect callback")
+
+                                    val testErrCb: (DbConnection, Throwable) -> Unit = { _, _ -> log("TEST: onConnectError fired") }
+                                    c.onConnectError(testErrCb)
+                                    log("Added test onConnectError callback")
+                                    c.removeOnConnectError(testErrCb)
+                                    log("Removed test onConnectError callback")
+
+                                    log("removeOn* callbacks test passed")
                                 }
                                 else -> {
                                     c.reducers.sendMessage(text)

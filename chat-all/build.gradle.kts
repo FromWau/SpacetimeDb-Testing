@@ -21,6 +21,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.swing)
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinx.coroutines.core)
+    testImplementation("com.clockworklabs:lib:0.1.0")
 }
 
 compose.desktop {

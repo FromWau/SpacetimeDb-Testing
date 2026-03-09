@@ -1,6 +1,6 @@
 # SpacetimeDB Kotlin SDK — Test Coverage (chat-all)
 
-**Total: 276 tests across 29 test classes — all passing**
+**Total: 385 tests across 34 test classes — all passing**
 
 ## Tested
 
@@ -231,6 +231,54 @@
 - `getVersion()` — detect Nil/V4/V7/Max/Unknown
 - `compareTo()` — ordering (NIL < MAX, reflexive)
 - `equals()` / `hashCode()` — consistency through parse roundtrip
+
+### BSATN Serialization Roundtrips (38 tests)
+- Primitive roundtrips: bool, byte, u8, i8, i16, u16, i32, u32, i64, u64, f32, f64
+- String roundtrip (empty, special chars, emoji, newlines)
+- ByteArray roundtrip
+- Multiple primitives in sequence
+- SDK type roundtrips: Identity (+ zero), ConnectionId (+ zero), Timestamp (+ UNIX_EPOCH), ScheduleAt.Time, ScheduleAt.Interval
+- Generated type roundtrips: User (with name + null name), Message, Note, Reminder
+- Writer utilities: toByteArray length, toBase64, reset
+- Reader utilities: remaining, offset tracking
+- SumTag and ArrayLen roundtrips
+- Little-endian byte order verification: i32, u16, f64 IEEE 754
+
+### Generated Type Equality & ToString (27 tests)
+- User: equals (same/different identity/name/online/null), hashCode consistency, toString, null name
+- Message: equals (same/different id/text), toString
+- Note: equals (same/different tag), hashCode consistency
+- Reminder: equals (same/different text), toString
+- Data class copy() preserves unchanged fields (User, Message)
+- Data class destructuring (User, Note)
+- Live server roundtrip: equals/hashCode/toString on server-returned User
+
+### Query Builder Edge Cases (20 tests)
+- NOT expression: wraps in parentheses, combined with AND
+- Method-style chaining: `.and()`, `.or()`, nested and-or-not
+- String escaping: single quotes (O'Reilly), multiple single quotes
+- Bool formatting: TRUE / FALSE literals
+- Identity hex literal in WHERE (0x prefix)
+- IxCol eq/neq SQL generation
+- Table scan without WHERE produces `SELECT * FROM "table"`
+- Different tables produce different SQL
+- Column names double-quoted, table-qualified (`"table"."column"`)
+- Semijoin: left selects left.*, right selects right.*, left with WHERE on left table
+- Integer formatting without locale separators
+- Empty string literal in WHERE
+- Mixed where/filter/where chains with multiple ANDs
+
+### Reducer Callback Ordering (10 tests)
+- onInsert fires during reducer callback (both events fire in same transaction)
+- Failed reducer has Status.Failed
+- Failed reducer does NOT fire onInsert callback
+- Failed reducer error message is available
+- onUpdate fires when row is modified (old → new values correct)
+- Reducer context has correct callerIdentity
+- Reducer context has reducerName
+- Reducer context has args matching what was sent
+- Client B observes client A's insert via onInsert (multi-client)
+- Client B observes client A's name change via onUpdate (multi-client)
 
 ---
 

@@ -1,45 +1,26 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-
 plugins {
-    alias(libs.plugins.kotlinJvm)
-    alias(libs.plugins.composeMultiplatform)
-    alias(libs.plugins.composeCompiler)
-    id("com.clockworklabs.spacetimedb")
+    alias(libs.plugins.androidApplication) apply false
+    alias(libs.plugins.androidKotlinMultiplatformLibrary) apply false
+    alias(libs.plugins.kotlinJvm) apply false
+    alias(libs.plugins.kotlinMultiplatform) apply false
+    alias(libs.plugins.kotlinSerialization) apply false
+    alias(libs.plugins.composeMultiplatform) apply false
+    alias(libs.plugins.composeCompiler) apply false
+    id("com.clockworklabs.spacetimedb") apply false
 }
 
-kotlin {
-    jvmToolchain(21)
-}
 
-spacetimedb {
-    cli.set(file("/home/fromml/Projects/SpacetimeDB/target/release/spacetimedb-cli"))
-}
-
-dependencies {
-    implementation("com.clockworklabs:lib:0.1.0")
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.swing)
-    implementation(compose.desktop.currentOs)
-    implementation(compose.material3)
-
-    testImplementation(kotlin("test"))
-    testImplementation(libs.kotlinx.coroutines.core)
-    testImplementation("com.clockworklabs:lib:0.1.0")
-}
-
-compose.desktop {
-    application {
-        mainClass = "MainKt"
-
-        val clientArg = providers.gradleProperty("clientId").orNull
-        if (clientArg != null) {
-            args += listOf("--client", clientArg)
+subprojects {
+    afterEvaluate {
+        plugins.withId("org.jetbrains.kotlin.multiplatform") {
+            extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension> {
+                jvmToolchain(21)
+            }
         }
-
-        nativeDistributions {
-            targetFormats(TargetFormat.Deb)
-            packageName = "chat-all"
-            packageVersion = "1.0.0"
+        plugins.withId("org.jetbrains.kotlin.jvm") {
+            extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmExtension> {
+                jvmToolchain(21)
+            }
         }
     }
 }

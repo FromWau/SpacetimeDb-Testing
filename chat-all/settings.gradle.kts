@@ -35,3 +35,7 @@ plugins {
 }
 
 includeBuild("/home/fromml/Projects/SpacetimeDB/sdks/kotlin")
+
+include(":desktopApp")
+include(":androidApp")
+include(":sharedClient")

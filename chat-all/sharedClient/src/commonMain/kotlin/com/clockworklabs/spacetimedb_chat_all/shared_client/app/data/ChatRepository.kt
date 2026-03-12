@@ -237,13 +237,6 @@ class ChatRepository(
         c.removeOnDisconnect(testCb)
         log("Removed test onDisconnect callback")
 
-        val testConnCb: (DbConnectionView, Identity, String) -> Unit =
-            { _, _, _ -> log("TEST: onConnect fired") }
-        c.onConnect(testConnCb)
-        log("Added test onConnect callback")
-        c.removeOnConnect(testConnCb)
-        log("Removed test onConnect callback")
-
         val testErrCb: (DbConnectionView, Throwable) -> Unit =
             { _, _ -> log("TEST: onConnectError fired") }
         c.onConnectError(testErrCb)

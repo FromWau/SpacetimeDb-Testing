@@ -55,25 +55,24 @@ class DbConnectionDisconnectTest {
     }
 
     @Test
-    fun `suspend oneOffQuery after disconnect hangs - must use withTimeout`() = runBlocking {
-        // KNOWN BEHAVIOR: suspend oneOffQuery on a closed connection never returns
-        // because no server response will arrive. Users must wrap in withTimeout.
+    fun `suspend oneOffQuery after disconnect throws immediately`() = runBlocking {
+        // After disconnect the send channel is closed, so oneOffQuery throws
+        // IllegalStateException immediately rather than hanging.
         val client = connectToDb()
         client.conn.disconnect()
 
-        var timedOut = false
+        var threw = false
         try {
             withTimeout(2000) {
                 @Suppress("UNUSED_VARIABLE")
                 val result = client.conn.oneOffQuery("SELECT * FROM user")
             }
         } catch (_: TimeoutCancellationException) {
-            timedOut = true
+            threw = true
         } catch (_: Exception) {
-            // Also acceptable — some other error
+            threw = true
         }
-        // We expect it to time out (no response from disconnected server)
-        assertTrue(timedOut, "suspend oneOffQuery on disconnected conn should hang until timeout")
+        assertTrue(threw, "suspend oneOffQuery on disconnected conn should fail")
     }
 
     @Test
